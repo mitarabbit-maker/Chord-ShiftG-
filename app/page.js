@@ -432,6 +432,8 @@ export default function GuitarChordTool() {
   const [revFret, setRevFret]     = useState(4);
   const [revQuality, setRevQuality] = useState('');
     const [showTension, setShowTension] = useState(false);
+      const [revTension, setRevTension] = useState('');
+
   const [add9Mode, setAdd9Mode]       = useState(false);
 
   const [fwdKey, setFwdKey]       = useState('E');
@@ -440,8 +442,22 @@ export default function GuitarChordTool() {
   const [useFlat, setUseFlat]     = useState(false);
 
   const soundingRoot = getSoundingRoot(revShape, revFret);
-  const soundingChord = soundingRoot + revQuality;
-  const playedChord   = revShape + revQuality;
+    const tensionSuffix = revTension ? `(${revTension})` : '';
+  const soundingChord = soundingRoot + revQuality + tensionSuffix;
+  const playedChord   = revShape + revQuality + tensionSuffix;
+
+  // 指板図用のクオリティ（テンションをマージ）
+  const diagramQuality = revTension
+    ? (revQuality === '' && revTension === '9'   ? 'add9'
+    :  revQuality === '7'  && revTension === '9'  ? '9'
+    :  revQuality === 'm'  && revTension === '9'  ? 'add9'
+    :  revQuality === 'm7' && revTension === '9'  ? 'm9'
+    :  revQuality === 'maj7' && revTension === '9' ? 'maj9'
+    :  revQuality === '7'  && revTension === '11' ? '11'
+    :  revQuality === '7'  && revTension === '13' ? '13'
+    :  revQuality)
+    : revQuality;
+
   const capoTable     = getCapoTable(fwdKey);
 
   const transposed = useCallback(
@@ -551,21 +567,37 @@ document.head.appendChild(link);
                   );
                 })}
               </div>
-              <button onClick={()=>setShowTension(s=>!s)}
+                 <button onClick={()=>setShowTension(s=>!s)}
                 style={{alignSelf:'flex-start',fontFamily:'DM Mono,monospace',fontSize:11,
                   padding:'4px 12px',borderRadius:6,border:'1px solid var(--border)',
                   background:'var(--bg)',color:'var(--muted)',cursor:'pointer',marginTop:4}}>
                 {t.showTension} {showTension ? '▲' : '▼'}
               </button>
               {showTension && (
-                <div className="quality-grid" style={{marginTop:6}}>
-                  {CHORD_QUALITIES_TENSION.map(q=>(
-                    <button key={q.id}
-                      className={`q-btn ${revQuality===q.id?'selected':''}`}
-                      onClick={()=>setRevQuality(q.id)}>{q.label}</button>
-                  ))}
+                <div style={{marginTop:6}}>
+                  <div style={{fontSize:11,color:'var(--muted)',fontFamily:'DM Mono,monospace',
+                    letterSpacing:'.1em',textTransform:'uppercase',marginBottom:6}}>
+                    テンション追加
+                  </div>
+                  <div className="quality-grid">
+                    <button
+                      className={`q-btn ${revTension===''?'selected':''}`}
+                      onClick={()=>setRevTension('')}>なし</button>
+                    {CHORD_QUALITIES_TENSION.map(q=>(
+                      <button key={q.id}
+                        className={`q-btn ${revTension===q.id?'selected':''}`}
+                        onClick={()=>setRevTension(q.id)}>{q.label}</button>
+                    ))}
+                  </div>
+                  {revTension && (
+                    <div style={{marginTop:8,fontSize:12,color:'var(--accent)',
+                      fontFamily:'DM Mono,monospace'}}>
+                      {revShape}{revQuality} + ({revTension}) = {revShape}{revQuality}({revTension})
+                    </div>
+                  )}
                 </div>
               )}
+
             </div>
 
             <div className="result-banner">
@@ -590,14 +622,16 @@ document.head.appendChild(link);
                 <div className="col">
                   <div className="diagram-label">{t.revDiagPlayed}</div>
                   <div className="diagram-card hl" style={{display:'inline-block'}}>
-                    <ChordDiagram root={revShape} quality={revQuality} highlight={true}/>
+                    <ChordDiagram root={revShape} quality={diagramQuality} highlight={true}/>
+
                   </div>
                 </div>
                 <div className="arrow">→</div>
                 <div className="col">
                   <div className="diagram-label">{t.revDiagSounding}</div>
                   <div className="diagram-card hl-accent" style={{display:'inline-block'}}>
-                    <ChordDiagram root={soundingRoot} quality={revQuality} highlight={true}/>
+                    <ChordDiagram root={soundingRoot} quality={diagramQuality} highlight={true}/>
+
                   </div>
                 </div>
               </div>
