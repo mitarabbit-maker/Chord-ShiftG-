@@ -419,6 +419,11 @@ export default function GuitarChordTool() {
 
   useEffect(() => {
     document.title = 'ChordShift - カポ変換・コード逆引きツール';
+    const link = document.querySelector("link[rel='canonical']") || document.createElement('link');
+link.rel = 'canonical';
+link.href = 'https://chord-shift-g.vercel.app/';
+document.head.appendChild(link);
+
     const setMeta = (name, content, prop = false) => {
       const sel = prop ? `meta[property="${name}"]` : `meta[name="${name}"]`;
       let el = document.querySelector(sel);
@@ -429,6 +434,7 @@ export default function GuitarChordTool() {
     setMeta('theme-color', '#141210');
     setMeta('og:title', 'ChordShift', true);
     setMeta('og:type', 'website', true);
+    setMeta('og:url', 'https://chord-shift-g.vercel.app/', true);
   }, []);
 
   return (
