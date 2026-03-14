@@ -35,7 +35,7 @@ function getCapoTable(targetKey) {
 function getSoundingRoot(shape, fret) {
   return transposeNote(shape, fret, false);
 }
-const CHORD_QUALITIES = [
+const CHORD_QUALITIES_BASIC = [
   { id: '',      label: 'Major'  },
   { id: 'm',     label: 'minor'  },
   { id: 'aug',   label: 'aug'    },
@@ -47,6 +47,18 @@ const CHORD_QUALITIES = [
   { id: 'sus4',  label: 'sus4'   },
   { id: 'dim7',  label: 'dim7'   },
 ];
+
+const CHORD_QUALITIES_TENSION = [
+  { id: '9',     label: '9'      },
+  { id: 'add9',  label: 'add9'   },
+  { id: 'm9',    label: 'm9'     },
+  { id: 'maj9',  label: 'maj9'   },
+  { id: '11',    label: '11'     },
+  { id: '13',    label: '13'     },
+];
+
+const ADD9_LABELS = { sus2: 'add9', 'add9': 'add9' };
+
 
 const T = {
   ja: {
@@ -68,6 +80,8 @@ const T = {
     transTitle:'キー変換（トランスポーズ）',
     transDesc:'コードを貼り付けて半音単位でキーを移動。歌いやすいキーに素早く変換できます。',
     transPlaceholder:'コードを入力...\n例: Am  F  C  G',
+        add9Mode:'add9表記', showTension:'テンション',
+
     transSemi:'半音移動', transFlat:'b表記', transResult:'変換結果',
   },
   en: {
@@ -89,6 +103,8 @@ const T = {
     transTitle:'Transpose',
     transDesc:'Paste your chords and shift the key up or down by semitones.',
     transPlaceholder:'Enter chords...\ne.g. Am  F  C  G',
+        add9Mode:'add9 mode', showTension:'Tension',
+
     transSemi:'Semitones', transFlat:'Flat notation', transResult:'Result',
   },
 };
@@ -184,8 +200,15 @@ function generateBarreShape(root, quality) {
     else if (quality === 'aug')   { frets=[n,n+3,n+2,n+1,n+1,n]; fingers=['1','4','3','2','2','1']; barre=0; }
     else if (quality === 'dim')   { frets=[-1,n,n+3,n+2,n+2,-1]; fingers=['','1','4','2','3','']; barre=0; }
     else if (quality === 'dim7')  { frets=[-1,n,n+2,n+1,n+2,-1]; fingers=['','1','3','2','4','']; barre=0; }
+    else if (quality === '9')     { frets=[n,n+2,n,n+1,n+3,n];   fingers=['1','3','1','2','4','1']; }
+    else if (quality === 'add9')  { frets=[n,n+2,n+2,n+1,n+3,n]; fingers=['1','3','4','2','4','1']; }
+    else if (quality === 'm9')    { frets=[n,n+2,n,n,n+3,n];     fingers=['1','3','1','1','4','1']; }
+    else if (quality === 'maj9')  { frets=[n,n+2,n+1,n+1,n+3,n]; fingers=['1','4','2','3','4','1']; }
+    else if (quality === '11')    { frets=[n,n+2,n,n+3,n+3,n];   fingers=['1','3','1','4','4','1']; }
+    else if (quality === '13')    { frets=[n,n+2,n+2,n+1,n+3,n+2]; fingers=['1','3','4','2','4','2']; }
     else return null;
   } else {
+
     barre = n;
     if      (quality === '')      { frets=[-1,n,n+2,n+2,n+2,n];   fingers=['','1','2','3','4','1']; }
     else if (quality === 'm')     { frets=[-1,n,n+2,n+2,n+1,n];   fingers=['','1','3','4','2','1']; }
@@ -197,8 +220,15 @@ function generateBarreShape(root, quality) {
     else if (quality === 'aug')   { frets=[-1,n,n+3,n+2,n+2,n+1]; fingers=['','1','4','2','3','1']; barre=0; }
     else if (quality === 'dim')   { frets=[-1,n,n+1,n+2,n+1,-1];  fingers=['','1','2','4','3','']; barre=0; }
     else if (quality === 'dim7')  { frets=[-1,n,n+1,n+2,n+1,n+2]; fingers=['','1','2','4','3','4']; barre=0; }
+    else if (quality === '9')     { frets=[-1,n,n+2,n,n+2,n+3];   fingers=['','1','3','1','4','4']; }
+    else if (quality === 'add9')  { frets=[-1,n,n+2,n+2,n+2,n+3]; fingers=['','1','2','3','4','4']; }
+    else if (quality === 'm9')    { frets=[-1,n,n+2,n,n+1,n+3];   fingers=['','1','3','1','2','4']; }
+    else if (quality === 'maj9')  { frets=[-1,n,n+2,n+1,n+2,n+3]; fingers=['','1','3','2','4','4']; }
+    else if (quality === '11')    { frets=[-1,n,n+2,n+2,n+3,n+3]; fingers=['','1','2','3','4','4']; }
+    else if (quality === '13')    { frets=[-1,n,n+2,n+1,n+4,n+3]; fingers=['','1','3','2','4','4']; }
     else return null;
   }
+
   return { frets, fingers, barre };
 }
 
@@ -401,6 +431,9 @@ export default function GuitarChordTool() {
   const [revShape, setRevShape]   = useState('C');
   const [revFret, setRevFret]     = useState(4);
   const [revQuality, setRevQuality] = useState('');
+    const [showTension, setShowTension] = useState(false);
+  const [add9Mode, setAdd9Mode]       = useState(false);
+
   const [fwdKey, setFwdKey]       = useState('E');
   const [inputText, setInputText] = useState('Am  F  C  G\nDm  Em  Am');
   const [semitones, setSemitones] = useState(2);
@@ -498,15 +531,43 @@ document.head.appendChild(link);
               </div>
             </div>
             <div className="field">
-              <label>{t.revQuality}</label>
+              <label style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <span>{t.revQuality}</span>
+                <button onClick={()=>setAdd9Mode(m=>!m)}
+                  style={{fontFamily:'DM Mono,monospace',fontSize:11,padding:'3px 10px',
+                    borderRadius:6,border:'1px solid var(--border)',background: add9Mode?'var(--gold-dim)':'var(--bg)',
+                    color: add9Mode?'var(--accent)':'var(--muted)',cursor:'pointer'}}>
+                  {t.add9Mode}
+                </button>
+              </label>
               <div className="quality-grid">
-                {CHORD_QUALITIES.map(q=>(
-                  <button key={q.id}
-                    className={`q-btn ${revQuality===q.id?'selected':''}`}
-                    onClick={()=>setRevQuality(q.id)}>{q.label}</button>
-                ))}
+                {CHORD_QUALITIES_BASIC.map(q=>{
+                  const displayLabel = add9Mode && q.id==='sus2' ? 'add9' : q.label;
+                  const actualId     = add9Mode && q.id==='sus2' ? 'add9' : q.id;
+                  return (
+                    <button key={q.id}
+                      className={`q-btn ${revQuality===actualId?'selected':''}`}
+                      onClick={()=>setRevQuality(actualId)}>{displayLabel}</button>
+                  );
+                })}
               </div>
+              <button onClick={()=>setShowTension(s=>!s)}
+                style={{alignSelf:'flex-start',fontFamily:'DM Mono,monospace',fontSize:11,
+                  padding:'4px 12px',borderRadius:6,border:'1px solid var(--border)',
+                  background:'var(--bg)',color:'var(--muted)',cursor:'pointer',marginTop:4}}>
+                {t.showTension} {showTension ? '▲' : '▼'}
+              </button>
+              {showTension && (
+                <div className="quality-grid" style={{marginTop:6}}>
+                  {CHORD_QUALITIES_TENSION.map(q=>(
+                    <button key={q.id}
+                      className={`q-btn ${revQuality===q.id?'selected':''}`}
+                      onClick={()=>setRevQuality(q.id)}>{q.label}</button>
+                  ))}
+                </div>
+              )}
             </div>
+
             <div className="result-banner">
               <div>
                 <div style={{fontSize:13,color:'var(--muted)',marginBottom:2}}>
